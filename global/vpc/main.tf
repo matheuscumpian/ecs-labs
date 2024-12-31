@@ -36,7 +36,7 @@ resource "aws_subnet" "public" {
   count = 3 # Create 3 public subnets
 
   vpc_id                  = aws_vpc.main.id                                          # ID of the VPC
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index + 3)             # CIDR block for the subnet (8 IP addresses per subnet)
+  cidr_block              = cidrsubnet(var.vpc_cidr, 12, count.index + 3)            # CIDR block for the subnet (8 IP addresses per subnet)
   availability_zone       = data.aws_availability_zones.available.names[count.index] # Availability zone
   map_public_ip_on_launch = true                                                     # Assign public IP addresses to instances in the subnet
 
@@ -52,11 +52,22 @@ resource "aws_subnet" "databases" {
   count = 3 # Create 3 databases subnets
 
   vpc_id                  = aws_vpc.main.id                                          # ID of the VPC
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index + 6)             # CIDR block for the subnet (8 IP addresses per subnet)
+  cidr_block              = cidrsubnet(var.vpc_cidr, 12, count.index + 6)            # CIDR block for the subnet (8 IP addresses per subnet)
   availability_zone       = data.aws_availability_zones.available.names[count.index] # Availability zone
   map_public_ip_on_launch = false                                                    # Do not assign public IP addresses to instances in the subnet
 
   tags = {
     Name = "${var.project_name}-${var.environment}-databases-${count.index + 1}" # Name tag for the subnet
+  }
+}
+
+
+# Internet Gateway
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id # ID of the VPC
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ig" # Name tag for the Internet Gateway
   }
 }

@@ -21,7 +21,7 @@ resource "aws_subnet" "private" {
   count = 3 # Create 3 private subnets
 
   vpc_id                  = aws_vpc.main.id                                          # ID of the VPC
-  cidr_block              = cidrsubnet(var.vpc_cidr, 16, count.index)                # CIDR block for the subnet (16 IP addresses per subnet)
+  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)                 # CIDR block for the subnet (16 IP addresses per subnet)
   availability_zone       = data.aws_availability_zones.available.names[count.index] # Availability zone
   map_public_ip_on_launch = false                                                    # Do not assign public IP addresses to instances in the subnet
 

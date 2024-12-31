@@ -25,7 +25,7 @@ provider "aws" {
 }
 
 module "vpc" {
-  source = "../global/vpc"
+  source = "git::https://github.com/matheuscumpian/ecs-labs.git//global/vpc?ref=main"
 
   environment  = var.environment
   project_name = var.project_name

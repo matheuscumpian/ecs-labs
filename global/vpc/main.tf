@@ -71,3 +71,118 @@ resource "aws_internet_gateway" "main" {
     Name = "${var.project_name}-${var.environment}-ig" # Name tag for the Internet Gateway
   }
 }
+
+
+
+# Elastic IPs
+
+resource "aws_eip" "nat" {
+  domain = "vpc" # Allocate the Elastic IP in the VPC
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-nat-${count.index + 1}" # Name tag for the Elastic IP
+  }
+}
+
+
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat.id # ID of the Elastic IP
+
+  subnet_id = aws_subnet.public[0].id # ID of the public subnet
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-nat-1" # Name tag for the NAT Gateway
+  }
+}
+
+
+# Route table
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id # ID of the VPC
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-private-rt" # Name tag for the Route Table
+  }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id # ID of the VPC
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-public-rt" # Name tag for the Route Table
+  }
+}
+
+# Routes
+
+resource "aws_route" "public" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"                  # Route all traffic to the Internet Gateway
+  gateway_id             = aws_internet_gateway.main.id # Internet Gateway ID
+}
+
+
+resource "aws_route" "private" {
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_nat_gateway.main.id
+}
+
+# Route table associations
+
+resource "aws_route_table_association" "private" {
+  count          = 3
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "public" {
+  count          = 3
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+
+# Parameter Store
+
+resource "aws_ssm_parameter" "vpc_id" {
+  name  = "/${var.project_name}/${var.environment}/vpc_id"
+  type  = "String"
+  value = aws_vpc.main.id
+}
+
+
+resource "aws_ssm_parameter" "private_subnet_ids" {
+  name  = "/${var.project_name}/${var.environment}/private_subnet_ids"
+  type  = "StringList"
+  value = join(",", aws_subnet.private[*].id)
+}
+
+
+resource "aws_ssm_parameter" "public_subnet_ids" {
+  name  = "/${var.project_name}/${var.environment}/public_subnet_ids"
+  type  = "StringList"
+  value = join(",", aws_subnet.public[*].id)
+}
+
+
+resource "aws_ssm_parameter" "databases_subnet_ids" {
+  name  = "/${var.project_name}/${var.environment}/databases_subnet_ids"
+  type  = "StringList"
+  value = join(",", aws_subnet.databases[*].id)
+}
+
+
+resource "aws_ssm_parameter" "nat_gateway_id" {
+  name  = "/${var.project_name}/${var.environment}/nat_gateway_id"
+  type  = "String"
+  value = aws_nat_gateway.main.id
+}
+
+
+resource "aws_ssm_parameter" "internet_gateway_id" {
+  name  = "/${var.project_name}/${var.environment}/internet_gateway_id"
+  type  = "String"
+  value = aws_internet_gateway.main.id
+}

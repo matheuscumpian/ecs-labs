@@ -80,7 +80,7 @@ resource "aws_eip" "nat" {
   domain = "vpc" # Allocate the Elastic IP in the VPC
 
   tags = {
-    Name = "${var.project_name}-${var.environment}-nat-${count.index + 1}" # Name tag for the Elastic IP
+    Name = "${var.project_name}-${var.environment}-nat" # Name tag for the Elastic IP
   }
 }
 

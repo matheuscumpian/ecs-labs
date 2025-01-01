@@ -1,19 +1,39 @@
 ### GENERAL CONFIGS
 
+locals {
+  common_tags = {
+    Project     = var.project_name
+    Environment = var.environment
+  }
+}
+
+
 variable "project_name" {
-  description = "The name of the project"
+  description = "Name of the project"
   type        = string
-  default     = "example"
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9-]+$", var.project_name))
+    error_message = "Project name must only contain alphanumeric characters and hyphens."
+  }
 }
 
 variable "environment" {
-  description = "The environment to deploy to"
+  description = "Environment name for the infrastructure"
   type        = string
-  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "staging", "prod"], var.environment)
+    error_message = "Environment must be dev, staging, or prod."
+  }
 }
 
 variable "vpc_cidr" {
-  description = "The CIDR block for the VPC"
+  description = "CIDR block for the VPC"
   type        = string
-  default     = "10.0.0.0/16"
+
+  validation {
+    condition     = can(cidrhost(var.vpc_cidr, 0))
+    error_message = "VPC CIDR must be a valid IPv4 CIDR block."
+  }
 }

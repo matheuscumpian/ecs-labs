@@ -1,26 +1,26 @@
 output "vpc_id" {
-  value       = aws_ssm_parameter.vpc_id.value
-  description = "value of the VPC ID"
+  description = "The ID of the VPC"
+  value       = aws_vpc.main.id
 }
 
 output "private_subnet_ids" {
-  value       = aws_ssm_parameter.private_subnet_ids.value
-  description = "value of the private subnet IDs"
+  description = "List of private subnet IDs"
+  value       = aws_subnet.private[*].id
 }
 
 output "public_subnet_ids" {
-  value       = aws_ssm_parameter.public_subnet_ids.value
-  description = "value of the public subnet IDs"
+  description = "List of public subnet IDs"
+  value       = aws_subnet.public[*].id
 }
 
-output "databases_subnet_ids" {
-  value       = aws_ssm_parameter.databases_subnet_ids.value
-  description = "value of the databases subnet IDs"
+output "database_subnet_ids" {
+  description = "List of database subnet IDs"
+  value       = aws_subnet.databases[*].id
 }
 
 output "nat_gateway_id" {
-  value       = aws_ssm_parameter.nat_gateway_id.value
-  description = "value of the NAT Gateway ID"
+  description = "ID of the NAT Gateway"
+  value       = aws_nat_gateway.main.id
 }
 
 output "internet_gateway_id" {

@@ -82,9 +82,21 @@ resource "aws_nat_gateway" "main" {
 
   subnet_id = aws_subnet.public[0].id # ID of the public subnet
 
-  tags = {
-    Name = "${var.project_name}-${var.environment}-nat-1" # Name tag for the NAT Gateway
+  depends_on = [
+    aws_internet_gateway.main,
+    aws_subnet.public
+  ]
+
+  lifecycle {
+    create_before_destroy = true
   }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-nat-1"
+    }
+  )
 }
 
 
@@ -93,17 +105,27 @@ resource "aws_nat_gateway" "main" {
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id # ID of the VPC
 
-  tags = {
-    Name = "${var.project_name}-${var.environment}-private-rt" # Name tag for the Route Table
-  }
+  depends_on = [aws_vpc.main]
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-private-rt"
+    }
+  )
 }
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id # ID of the VPC
 
-  tags = {
-    Name = "${var.project_name}-${var.environment}-public-rt" # Name tag for the Route Table
-  }
+  depends_on = [aws_vpc.main]
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-public-rt"
+    }
+  )
 }
 
 # Routes
@@ -112,13 +134,23 @@ resource "aws_route" "public" {
   route_table_id         = aws_route_table.public.id
   destination_cidr_block = "0.0.0.0/0"                  # Route all traffic to the Internet Gateway
   gateway_id             = aws_internet_gateway.main.id # Internet Gateway ID
+
+  depends_on = [
+    aws_route_table.public,
+    aws_internet_gateway.main
+  ]
 }
 
 
 resource "aws_route" "private" {
   route_table_id         = aws_route_table.private.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_nat_gateway.main.id
+  nat_gateway_id         = aws_nat_gateway.main.id
+
+  depends_on = [
+    aws_route_table.private,
+    aws_nat_gateway.main
+  ]
 }
 
 # Route table associations
@@ -142,6 +174,14 @@ resource "aws_ssm_parameter" "vpc_id" {
   name  = "/${var.project_name}/${var.environment}/vpc_id"
   type  = "String"
   value = aws_vpc.main.id
+
+  depends_on = [aws_vpc.main]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
 }
 
 
@@ -149,6 +189,14 @@ resource "aws_ssm_parameter" "private_subnet_ids" {
   name  = "/${var.project_name}/${var.environment}/private_subnet_ids"
   type  = "StringList"
   value = join(",", aws_subnet.private[*].id)
+
+  depends_on = [aws_subnet.private]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
 }
 
 
@@ -156,6 +204,14 @@ resource "aws_ssm_parameter" "public_subnet_ids" {
   name  = "/${var.project_name}/${var.environment}/public_subnet_ids"
   type  = "StringList"
   value = join(",", aws_subnet.public[*].id)
+
+  depends_on = [aws_subnet.public]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
 }
 
 
@@ -163,6 +219,14 @@ resource "aws_ssm_parameter" "databases_subnet_ids" {
   name  = "/${var.project_name}/${var.environment}/databases_subnet_ids"
   type  = "StringList"
   value = join(",", aws_subnet.databases[*].id)
+
+  depends_on = [aws_subnet.databases]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
 }
 
 
@@ -170,6 +234,14 @@ resource "aws_ssm_parameter" "nat_gateway_id" {
   name  = "/${var.project_name}/${var.environment}/nat_gateway_id"
   type  = "String"
   value = aws_nat_gateway.main.id
+
+  depends_on = [aws_nat_gateway.main]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
 }
 
 
@@ -177,4 +249,12 @@ resource "aws_ssm_parameter" "internet_gateway_id" {
   name  = "/${var.project_name}/${var.environment}/internet_gateway_id"
   type  = "String"
   value = aws_internet_gateway.main.id
+
+  depends_on = [aws_internet_gateway.main]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
 }

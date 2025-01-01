@@ -31,3 +31,14 @@ module "vpc" {
   project_name = var.project_name
   vpc_cidr     = var.vpc_cidr
 }
+
+
+module "ecs" {
+  source = "git::https://github.com/matheuscumpian/ecs-labs.git//modules/ecs?ref=main"
+
+  environment  = var.environment
+  project_name = var.project_name
+
+  vpc_id            = module.vpc.vpc_id
+  public_subnet_ids = module.vpc.public_subnet_ids
+}

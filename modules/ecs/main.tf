@@ -177,8 +177,8 @@ resource "aws_launch_template" "main-on-demand" {
     device_name = "/dev/xvda"
 
     ebs {
-      volume_size = 30
-      volume_type = "gp3"
+      volume_size = 10
+      volume_type = "gp2"
     }
   }
 

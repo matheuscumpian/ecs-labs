@@ -1,10 +1,3 @@
-locals {
-  common_tags = {
-    Project     = var.project_name
-    Environment = var.environment
-  }
-}
-
 variable "project_name" {
   description = "Name of the project"
   type        = string

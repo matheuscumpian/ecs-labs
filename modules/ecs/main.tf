@@ -150,7 +150,7 @@ resource "aws_launch_template" "main-on-demand" {
     )
   }
 
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+  user_data = base64encode(templatefile("./templates/user_data.sh", {
     CLUSTER_NAME = aws_ecs_cluster.main.name
   }))
 

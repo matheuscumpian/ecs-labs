@@ -86,3 +86,93 @@ resource "aws_alb_listener" "http" {
 
   depends_on = [aws_alb.main]
 }
+
+# SG Rules
+
+resource "aws_security_group" "ecs_node" {
+  name        = "${var.project_name}-${var.environment}-ecs-node-sg"
+  vpc_id      = var.vpc_id
+  description = "ECS Node Security Group"
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-ecs-node-sg"
+    }
+  )
+}
+
+resource "aws_security_group_rule" "ecs_node_ingress" {
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  security_group_id        = aws_security_group.ecs_node.id
+  source_security_group_id = aws_security_group.main.id
+  cidr_blocks              = [var.vpc_cidr]
+
+  depends_on = [aws_security_group.ecs_node]
+}
+
+# ECS Cluster
+
+resource "aws_ecs_cluster" "main" {
+  name = "${var.project_name}-${var.environment}-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-cluster"
+    }
+  )
+}
+
+
+# SSM Parameters
+
+resource "aws_ssm_parameter" "ecs_cluster_name" {
+  name  = "/${var.project_name}/${var.environment}/ecs_cluster_name"
+  type  = "String"
+  value = aws_ecs_cluster.main.name
+
+  depends_on = [aws_ecs_cluster.main]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "alb_dns_name" {
+  name  = "/${var.project_name}/${var.environment}/alb_dns_name"
+  type  = "String"
+  value = aws_alb.main.dns_name
+
+  depends_on = [aws_alb.main]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_ssm_parameter" "alb_arn" {
+  name  = "/${var.project_name}/${var.environment}/alb_arn"
+  type  = "String"
+  value = aws_alb.main.arn
+
+  depends_on = [aws_alb.main]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = local.common_tags
+}

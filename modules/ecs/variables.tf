@@ -33,3 +33,10 @@ variable "public_subnet_ids" {
   description = "The IDs of the public subnets"
   type        = list(string)
 }
+
+
+variable "vpc_cidr" {
+  description = "The CIDR block for the VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}

@@ -17,10 +17,10 @@ resource "aws_security_group_rule" "alb_http_ingress" {
   from_port         = 80
   to_port           = 80
   protocol          = "tcp"
-  security_group_id = aws_security_group.main.id
+  security_group_id = aws_security_group.alb_sg.id
   cidr_blocks       = ["0.0.0.0/0"]
 
-  depends_on = [aws_security_group.main]
+  depends_on = [aws_security_group.alb_sg]
 }
 
 resource "aws_security_group_rule" "alb_http_egress" {
@@ -28,10 +28,10 @@ resource "aws_security_group_rule" "alb_http_egress" {
   from_port         = 0
   to_port           = 0
   protocol          = "-1"
-  security_group_id = aws_security_group.main.id
+  security_group_id = aws_security_group.alb_sg.id
   cidr_blocks       = ["0.0.0.0/0"]
 
-  depends_on = [aws_security_group.main]
+  depends_on = [aws_security_group.alb_sg]
 }
 
 resource "aws_security_group_rule" "alb_https_ingress" {
@@ -39,10 +39,10 @@ resource "aws_security_group_rule" "alb_https_ingress" {
   from_port         = 443
   to_port           = 443
   protocol          = "tcp"
-  security_group_id = aws_security_group.main.id
+  security_group_id = aws_security_group.alb_sg.id
   cidr_blocks       = ["0.0.0.0/0"]
 
-  depends_on = [aws_security_group.main]
+  depends_on = [aws_security_group.alb_sg]
 }
 
 
@@ -67,7 +67,7 @@ resource "aws_alb" "main" {
   )
 
 
-  depends_on = [aws_security_group.main]
+  depends_on = [aws_security_group.alb_sg]
 }
 
 resource "aws_alb_listener" "http" {
@@ -111,7 +111,7 @@ resource "aws_security_group_rule" "ecs_node_ingress" {
 
   cidr_blocks = [var.vpc_cidr]
 
-  depends_on = [aws_security_group.ecs_node]
+  depends_on = [aws_security_group.ecs_node_sg]
 }
 
 # Launch template
@@ -154,7 +154,7 @@ resource "aws_launch_template" "main-on-demand" {
     CLUSTER_NAME = aws_ecs_cluster.main.name
   }))
 
-  depends_on = [aws_security_group.ecs_node]
+  depends_on = [aws_security_group.ecs_node_sg]
 }
 
 # ASG

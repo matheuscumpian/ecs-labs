@@ -114,7 +114,34 @@ resource "aws_security_group_rule" "ecs_node_ingress" {
   depends_on = [aws_security_group.ecs_node_sg]
 }
 
+# ECS Cluster
+
+resource "aws_ecs_cluster" "main" {
+  name = "${var.project_name}-${var.environment}-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${var.project_name}-${var.environment}-cluster"
+    }
+  )
+}
+
+
+
 # Launch template
+
+locals {
+  user_data = <<-EOF
+#!/bin/bash
+echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config
+EOF
+}
 
 resource "aws_launch_template" "main-on-demand" {
   name_prefix = "${var.project_name}-${var.environment}-"
@@ -150,9 +177,7 @@ resource "aws_launch_template" "main-on-demand" {
     )
   }
 
-  user_data = base64encode(templatefile("${path.module}/templates/user_data.sh", {
-    CLUSTER_NAME = aws_ecs_cluster.main.name
-  }))
+  user_data = base64encode(local.user_data)
 
   depends_on = [aws_security_group.ecs_node_sg]
 }
@@ -201,25 +226,6 @@ resource "aws_autoscaling_group" "main" {
 
   depends_on = [aws_launch_template.main-on-demand]
 }
-
-# ECS Cluster
-
-resource "aws_ecs_cluster" "main" {
-  name = "${var.project_name}-${var.environment}-cluster"
-
-  setting {
-    name  = "containerInsights"
-    value = "enabled"
-  }
-
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "${var.project_name}-${var.environment}-cluster"
-    }
-  )
-}
-
 
 # SSM Parameters
 

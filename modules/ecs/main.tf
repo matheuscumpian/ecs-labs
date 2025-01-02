@@ -167,7 +167,7 @@ resource "aws_launch_template" "main-on-demand" {
   name_prefix = "${var.project_name}-${var.environment}-"
   image_id    = data.aws_ami.ecs_optimized.id
 
-  instance_type = "t3.micro"
+  instance_type = "t4g.small"
 
   vpc_security_group_ids = [aws_security_group.ecs_node_sg.id]
 

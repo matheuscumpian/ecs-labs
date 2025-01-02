@@ -3,7 +3,7 @@ data "aws_ami" "ecs_optimized" {
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-ecs-hvm-*-x86_64-ebs"]
+    values = ["amzn2-ami-ecs-hvm-*-arm64-ebs"]
   }
 
   filter {

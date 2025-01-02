@@ -15,6 +15,10 @@ resource "aws_security_group" "alb_sg" {
     create_before_destroy = true
   }
 
+  timeouts {
+    delete = "15m"
+  }
+
   tags = merge(
     local.common_tags,
     {
@@ -33,6 +37,10 @@ resource "aws_security_group_rule" "alb_http_ingress" {
   cidr_blocks       = ["0.0.0.0/0"]
 
   depends_on = [aws_security_group.alb_sg]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_security_group_rule" "alb_http_egress" {
@@ -44,6 +52,10 @@ resource "aws_security_group_rule" "alb_http_egress" {
   cidr_blocks       = ["0.0.0.0/0"]
 
   depends_on = [aws_security_group.alb_sg]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_security_group_rule" "alb_https_ingress" {
@@ -55,6 +67,10 @@ resource "aws_security_group_rule" "alb_https_ingress" {
   cidr_blocks       = ["0.0.0.0/0"]
 
   depends_on = [aws_security_group.alb_sg]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 
@@ -78,6 +94,10 @@ resource "aws_alb" "main" {
     }
   )
 
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes        = [security_groups]
+  }
 
   depends_on = [aws_security_group.alb_sg]
 }
@@ -130,6 +150,10 @@ resource "aws_security_group" "ecs_node_sg" {
     create_before_destroy = true
   }
 
+  timeouts {
+    delete = "15m"
+  }
+
   tags = merge(
     local.common_tags,
     {
@@ -148,6 +172,10 @@ resource "aws_security_group_rule" "ecs_node_ingress" {
   cidr_blocks = [var.vpc_cidr]
 
   depends_on = [aws_security_group.ecs_node_sg]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # ECS Cluster
@@ -260,7 +288,11 @@ resource "aws_autoscaling_group" "main" {
     propagate_at_launch = true
   }
 
-  depends_on = [aws_launch_template.main-on-demand]
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [aws_security_group.ecs_node_sg, aws_launch_template.main-on-demand]
 }
 
 resource "aws_alb_target_group_attachment" "main" {

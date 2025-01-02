@@ -165,7 +165,7 @@ EOF
 
 resource "aws_launch_template" "main-on-demand" {
   name_prefix = "${var.project_name}-${var.environment}-"
-  image_id    = data.aws_ssm_parameter.ecs_optimized_ami.value
+  image_id    = data.aws_ssm_parameter.ecs_optimized.value
 
   instance_type = "t4g.small"
 

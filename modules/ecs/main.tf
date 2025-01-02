@@ -69,3 +69,20 @@ resource "aws_alb" "main" {
 
   depends_on = [aws_security_group.main]
 }
+
+resource "aws_alb_listener" "http" {
+  load_balancer_arn = aws_alb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Hello, World!"
+      status_code  = "200"
+    }
+  }
+
+  depends_on = [aws_alb.main]
+}

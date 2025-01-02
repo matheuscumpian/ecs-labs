@@ -1,6 +1,6 @@
 # Security Group
 
-resource "aws_security_group" "main" {
+resource "aws_security_group" "alb_sg" {
   name   = "${var.project_name}-${var.environment}-sg"
   vpc_id = var.vpc_id
 
@@ -12,7 +12,7 @@ resource "aws_security_group" "main" {
   )
 }
 
-resource "aws_security_group_rule" "http_ingress" {
+resource "aws_security_group_rule" "alb_http_ingress" {
   type              = "ingress"
   from_port         = 80
   to_port           = 80
@@ -23,7 +23,7 @@ resource "aws_security_group_rule" "http_ingress" {
   depends_on = [aws_security_group.main]
 }
 
-resource "aws_security_group_rule" "http_egress" {
+resource "aws_security_group_rule" "alb_http_egress" {
   type              = "egress"
   from_port         = 0
   to_port           = 0
@@ -34,7 +34,7 @@ resource "aws_security_group_rule" "http_egress" {
   depends_on = [aws_security_group.main]
 }
 
-resource "aws_security_group_rule" "https_ingress" {
+resource "aws_security_group_rule" "alb_https_ingress" {
   type              = "ingress"
   from_port         = 443
   to_port           = 443
@@ -52,7 +52,7 @@ resource "aws_alb" "main" {
   name                       = "${var.project_name}-${var.environment}-alb"
   internal                   = false
   load_balancer_type         = "application"
-  security_groups            = [aws_security_group.main.id]
+  security_groups            = [aws_security_group.alb_sg.id]
   subnets                    = var.public_subnet_ids
   enable_deletion_protection = false
   enable_http2               = true
@@ -87,9 +87,9 @@ resource "aws_alb_listener" "http" {
   depends_on = [aws_alb.main]
 }
 
-# SG Rules
+# SG Rules for ECS Nodes
 
-resource "aws_security_group" "ecs_node" {
+resource "aws_security_group" "ecs_node_sg" {
   name        = "${var.project_name}-${var.environment}-ecs-node-sg"
   vpc_id      = var.vpc_id
   description = "ECS Node Security Group"
@@ -103,15 +103,103 @@ resource "aws_security_group" "ecs_node" {
 }
 
 resource "aws_security_group_rule" "ecs_node_ingress" {
-  type                     = "ingress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  security_group_id        = aws_security_group.ecs_node.id
-  source_security_group_id = aws_security_group.main.id
-  cidr_blocks              = [var.vpc_cidr]
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  security_group_id = aws_security_group.ecs_node_sg.id
+
+  cidr_blocks = [var.vpc_cidr]
 
   depends_on = [aws_security_group.ecs_node]
+}
+
+# Launch template
+
+resource "aws_launch_template" "main-on-demand" {
+  name_prefix = "${var.project_name}-${var.environment}-"
+  image_id    = data.aws_ami.ecs_optimized.id
+
+  instance_type = "t3.micro"
+
+  vpc_security_group_ids = [aws_security_group.ecs_node_sg.id]
+
+  update_default_version = true
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      volume_size = 30
+      volume_type = "gp3"
+    }
+  }
+
+  iam_instance_profile {
+    name = "ecsInstanceRole"
+  }
+
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(
+      local.common_tags,
+      {
+        Name = "${var.project_name}-${var.environment}-ecs-node"
+      }
+    )
+  }
+
+  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+    CLUSTER_NAME = aws_ecs_cluster.main.name
+  }))
+
+  depends_on = [aws_security_group.ecs_node]
+}
+
+# ASG
+
+resource "aws_autoscaling_group" "main" {
+  name = "${var.project_name}-${var.environment}-asg"
+
+  launch_template {
+    id      = aws_launch_template.main-on-demand.id
+    version = "$Latest"
+  }
+
+  min_size                  = 1
+  max_size                  = 5
+  desired_capacity          = 1
+  vpc_zone_identifier       = var.private_subnet_ids
+  health_check_type         = "EC2"
+  health_check_grace_period = 300
+  target_group_arns         = [aws_alb_target_group.main.arn]
+  termination_policies      = ["OldestInstance"]
+
+  enabled_metrics = [
+    "GroupMinSize",
+    "GroupMaxSize",
+    "GroupDesiredCapacity",
+    "GroupInServiceInstances",
+    "GroupPendingInstances",
+    "GroupStandbyInstances",
+    "GroupTerminatingInstances",
+    "GroupTotalInstances",
+  ]
+
+  tag {
+    key                 = "Name"
+    value               = "${var.project_name}-${var.environment}-ecs-node"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "AmazonECSManaged"
+    value               = "true"
+    propagate_at_launch = true
+  }
+
+  depends_on = [aws_launch_template.main-on-demand]
 }
 
 # ECS Cluster

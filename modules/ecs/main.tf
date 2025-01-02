@@ -1,16 +1,28 @@
 # Security Group
 
+
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+  upper   = false
+}
+
 resource "aws_security_group" "alb_sg" {
-  name   = "${var.project_name}-${var.environment}-sg"
+  name   = "${var.project_name}-${var.environment}-alb-${random_string.suffix.result}"
   vpc_id = var.vpc_id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tags = merge(
     local.common_tags,
     {
-      Name = "${var.project_name}-${var.environment}-sg"
+      Name = "${var.project_name}-${var.environment}-alb-${random_string.suffix.result}"
     }
   )
 }
+
 
 resource "aws_security_group_rule" "alb_http_ingress" {
   type              = "ingress"
@@ -110,14 +122,18 @@ resource "aws_alb_target_group" "main" {
 # SG Rules for ECS Nodes
 
 resource "aws_security_group" "ecs_node_sg" {
-  name        = "${var.project_name}-${var.environment}-ecs-node-sg"
+  name        = "${var.project_name}-${var.environment}-ecs-node-${random_string.suffix.result}"
   vpc_id      = var.vpc_id
   description = "ECS Node Security Group"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tags = merge(
     local.common_tags,
     {
-      Name = "${var.project_name}-${var.environment}-ecs-node-sg"
+      Name = "${var.project_name}-${var.environment}-ecs-node-${random_string.suffix.result}"
     }
   )
 }

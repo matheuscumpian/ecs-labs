@@ -87,6 +87,26 @@ resource "aws_alb_listener" "http" {
   depends_on = [aws_alb.main]
 }
 
+
+resource "aws_alb_target_group" "main" {
+  name     = "${var.project_name}-${var.environment}-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+
+  depends_on = [aws_alb.main]
+}
+
 # SG Rules for ECS Nodes
 
 resource "aws_security_group" "ecs_node_sg" {
@@ -225,6 +245,14 @@ resource "aws_autoscaling_group" "main" {
   }
 
   depends_on = [aws_launch_template.main-on-demand]
+}
+
+resource "aws_alb_target_group_attachment" "main" {
+  target_group_arn = aws_alb_target_group.main.arn
+  target_id        = aws_autoscaling_group.main.id
+  port             = 80
+
+  depends_on = [aws_autoscaling_group.main]
 }
 
 # SSM Parameters

@@ -1,13 +1,3 @@
-data "aws_ami" "ecs_optimized" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-ecs-hvm-*-arm64-ebs"]
-  }
-
-  filter {
-    name   = "owner-id"
-    values = ["137112412989"] # Amazon ECS AMI owner ID
-  }
+data "aws_ssm_parameter" "ecs_optimized" {
+  name = "/aws/service/ecs/optimized-ami/amazon-linux-2/kernel-5.10/recommended/image_id"
 }

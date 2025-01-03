@@ -177,7 +177,7 @@ EOF
 resource "aws_launch_template" "main" {
   name_prefix            = "${var.project_name}-${var.environment}-"
   image_id               = data.aws_ssm_parameter.ecs_optimized.value
-  instance_type          = "t4g.small"
+  instance_type          = "t3a.small"
   vpc_security_group_ids = [aws_security_group.ecs_node_sg.id]
   user_data              = base64encode(local.ecs_user_data)
   update_default_version = true
